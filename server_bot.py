@@ -6,21 +6,26 @@ from flask import Flask
 import telebot
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from dotenv import load_dotenv  # <-- Kunci Utama 1: Panggil pembaca .env
+
+# --- HAPUS SENJATA RAHASIA HUGGING FACE ---
+# (Kode DNS Bypass dihapus karena laptopmu tidak memblokir Telegram)
+
+# 1. Load variabel rahasia dari file .env di laptopmu
+load_dotenv()
 
 # Setup Bot & Flask
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 app = Flask(__name__)
 
-# Ini adalah "Pintu Depan" agar server Cloud (Render) tahu aplikasi kita hidup
 @app.route('/')
 def home():
-    return "🤖 Server Bot Presensi PT Fazana 24/7 sedang berjalan normal!"
+    return "🤖 Server Bot Presensi PT Fazana jalan di LOKAL!"
 
 def download_pdf_selenium():
-    """Fungsi Scraping dengan pengaturan khusus Docker/Linux"""
+    """Fungsi Scraping dengan pengaturan normal untuk Windows"""
     lokasi_download = os.path.join(os.getcwd(), "hasil_pdf")
     os.makedirs(lokasi_download, exist_ok=True)
     
@@ -28,10 +33,11 @@ def download_pdf_selenium():
         os.remove(file_lama)
 
     options = Options()
-    options.binary_location = '/usr/bin/chromium' # Kunci utama untuk Docker!
-    options.add_argument("--headless=new")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+    
+    # --- Kunci Utama 2: HAPUS PATH LINUX ---
+    # options.binary_location = '/usr/bin/chromium' (Dihapus)
+    
+    options.add_argument("--headless=new") # Tetap gaib agar tidak mengganggu layar
     options.add_argument("--window-size=1920,1080")
     
     prefs = {
@@ -41,9 +47,9 @@ def download_pdf_selenium():
     }
     options.add_experimental_option("prefs", prefs)
     
-    # ChromeDriver bawaan dari OS Linux
-    service = Service('/usr/bin/chromedriver')
-    driver = webdriver.Chrome(service=service, options=options)
+    # --- Kunci Utama 3: Biarkan Selenium mencari Chrome di Windows otomatis ---
+    # service = Service('/usr/bin/chromedriver') (Dihapus)
+    driver = webdriver.Chrome(options=options)
     
     try:
         driver.get("https://pt-fazana-berkah-mulia.infinityfree.me/auth/login.php")
@@ -69,11 +75,11 @@ def download_pdf_selenium():
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Halo Bos! 🤖\nSaya asisten 24/7 yang hidup di Cloud. Ketik /rekap untuk minta PDF presensi.")
+    bot.reply_to(message, "Halo Bos! 🤖\nSaya asisten yang jalan di laptop lokal. Ketik /rekap untuk minta PDF presensi.")
 
 @bot.message_handler(commands=['rekap'])
 def handle_rekap(message):
-    bot.reply_to(message, "⏳ Siap! Menerobos server absensi dari Cloud... Mohon tunggu 15 detik.")
+    bot.reply_to(message, "⏳ Siap! Menerobos server absensi dari Windows... Mohon tunggu 15 detik.")
     file_pdf = download_pdf_selenium()
     
     if file_pdf:
@@ -87,10 +93,9 @@ def run_bot():
     bot.polling(none_stop=True)
 
 if __name__ == "__main__":
-    # 1. Nyalakan Bot Telegram di "jalur" terpisah (Thread)
+    # 1. Nyalakan Bot Telegram di "jalur" terpisah
     t = threading.Thread(target=run_bot)
     t.start()
     
-    # 2. Nyalakan Server Web Flask di "jalur" utama (Wajib untuk Render)
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    # 2. Nyalakan Web Server bohongan (Flask) di terminal VS Code
+    app.run(host='0.0.0.0', port=7860)
